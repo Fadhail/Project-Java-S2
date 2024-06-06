@@ -20,7 +20,7 @@ public class TitleScreenGui extends JFrame {
         setLocationRelativeTo(null);
 
         // Disable the resize button
-        setResizable(false);
+        setResizable(true);
 
         // Set the default close operation
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -41,8 +41,16 @@ public class TitleScreenGui extends JFrame {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 30));
         titleLabel.setBounds(300, 50, 200, 50);
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        titleLabel.setForeground(constants.Colors.RED);
+        titleLabel.setForeground(constants.Colors.BLACK);
         add(titleLabel);
+
+        // Description label
+        JLabel descriptionLabel = new JLabel("Welcome to My Library");
+        descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 20));
+        descriptionLabel.setBounds(0, 100, 800, 50);
+        descriptionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        descriptionLabel.setForeground(constants.Colors.BLACK);
+        add(descriptionLabel);
 
         // Login button
         JButton loginButton = new JButton("Login");
