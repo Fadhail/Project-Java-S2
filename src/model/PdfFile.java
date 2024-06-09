@@ -5,41 +5,64 @@ public class PdfFile {
     private String fileName;
     private String fileDescription;
     private String fileCategory;
-    private String filePath;
     private String uploadedAt;
+    private int userId; // Foreign key referencing User id
 
-    // Constructor with all fields
-    public PdfFile(int id, String fileName, String fileDescription, String fileCategory, String filePath, String uploadedAt) {
+    public PdfFile(int id, String fileName, String fileDescription, String fileCategory, String uploadedAt, int userId) {
         this.id = id;
         this.fileName = fileName;
         this.fileDescription = fileDescription;
         this.fileCategory = fileCategory;
-        this.filePath = filePath;
         this.uploadedAt = uploadedAt;
+        this.userId = userId;
     }
 
-    // Getters for fields
+    // Getters and Setters
     public int getId() {
         return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getFileName() {
         return fileName;
     }
 
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
+    }
+
     public String getFileDescription() {
         return fileDescription;
+    }
+
+    public void setFileDescription(String fileDescription) {
+        this.fileDescription = fileDescription;
     }
 
     public String getFileCategory() {
         return fileCategory;
     }
 
-    public String getFilePath() {
-        return filePath;
+    public void setFileCategory(String fileCategory) {
+        this.fileCategory = fileCategory;
     }
 
     public String getUploadedAt() {
         return uploadedAt;
+    }
+
+    public void setUploadedAt(String uploadedAt) {
+        this.uploadedAt = uploadedAt;
+    }
+
+    public int getUserId() {
+        return userId;
+    }
+
+    public void setUserId(int userId) {
+        this.userId = userId;
     }
 }

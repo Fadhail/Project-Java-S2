@@ -1,5 +1,6 @@
 package screen;
 
+import constants.Colors;
 import model.User;
 import model.PdfFile;
 import dao.PdfFileDAO;
@@ -12,12 +13,14 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Dashboard extends JFrame {
+    private User user;
+    private int userId;
+    private PdfFileDAO pdfFileDAO;
     private JLabel pdfLabel;
     private JTable table;
     private DefaultTableModel tableModel;
@@ -26,6 +29,10 @@ public class Dashboard extends JFrame {
     public Dashboard(User user) {
         // Call the JFrame constructor
         super("Dashboard");
+
+        this.user = user;
+        this.userId = user.getId();
+        this.pdfFileDAO = new PdfFileDAO();
 
         // Set the size of the JFrame
         setSize(1920, 1080);
@@ -43,7 +50,7 @@ public class Dashboard extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // Set background color using from constants.Colors
-        getContentPane().setBackground(constants.Colors.LIGHT_BLUE);
+        getContentPane().setBackground(Colors.LIGHT_BLUE);
 
         // Add GUI components
         addGuiComponents();
@@ -73,7 +80,7 @@ public class Dashboard extends JFrame {
     private JButton createIconButton(String text, String iconName) {
         JButton button = new JButton(text);
         button.setBounds(300, 500, 200, 50);
-        button.setBackground(constants.Colors.DARK_BLUE);
+        button.setBackground(Colors.DARK_BLUE);
         return button;
     }
 
@@ -81,8 +88,40 @@ public class Dashboard extends JFrame {
         setLayout(new BorderLayout());
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
+        // Add this at the top where you initialize your other components
+        JTextField searchField = new JTextField();
+        searchField.setBounds(20, 20, 250, 25); // Adjust these values as needed
+        add(searchField);
+
+        JButton searchButton = new JButton("Search");
+        searchButton.setBounds(280, 20, 100, 25); // Adjust these values as needed
+        add(searchButton);
+
+        // Add this action listener to your search button
+        searchButton.addActionListener(e -> {
+            String searchText = searchField.getText().toLowerCase();
+            List<PdfFile> files;
+            try {
+                files = pdfFileDAO.getAllFiles(user.getId());
+            } catch (SQLException sqlException) {
+                sqlException.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Error while fetching files: " + sqlException.getMessage());
+                return;
+            }
+            List<PdfFile> filteredFiles = files.stream()
+                    .filter(file -> file.getFileName().toLowerCase().contains(searchText)
+                            || file.getFileDescription().toLowerCase().contains(searchText)
+                            || file.getFileCategory().toLowerCase().contains(searchText))
+                    .collect(Collectors.toList());
+
+            tableModel.setRowCount(0);
+            for (PdfFile file : filteredFiles) {
+                tableModel.addRow(new Object[]{file.getId(), file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
+            }
+        });
+
         // Table to display file information
-        tableModel = new DefaultTableModel(new Object[]{"ID", "File Name", "File Description", "File Category", "File Path", "Uploaded At"}, 0);
+        tableModel = new DefaultTableModel(new Object[]{"ID", "File Name", "File Description", "File Category", "Uploaded At"}, 0);
         table = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBounds(50, 50, 700, 300);
@@ -91,7 +130,7 @@ public class Dashboard extends JFrame {
         // Button to upload PDF
         JButton uploadButton = createIconButton("Upload PDF", "upload_icon.png");
         uploadButton.addActionListener(e -> {
-            new UploadFile().setVisible(true);
+            new UploadFile(userId).setVisible(true);
         });
         buttonPanel.add(uploadButton);
 
@@ -193,18 +232,12 @@ public class Dashboard extends JFrame {
         }
     }
 
-    private void saveFileInfoToDatabase(String fileName, String fileDescription, String fileCategory, String filePath) throws SQLException {
-        PdfFileDAO pdfFileDAO = new PdfFileDAO();
-        PdfFile pdfFile = new PdfFile(0, fileName, fileDescription, fileCategory, filePath, null); // ID and uploadedAt will be set by DB
-        pdfFileDAO.saveFileInfo(pdfFile);
-    }
-
     private void loadTableData() throws SQLException {
         PdfFileDAO pdfFileDAO = new PdfFileDAO();
-        List<PdfFile> files = pdfFileDAO.getAllFiles();
-        tableModel.setRowCount(0); // Clear existing data
+        List<PdfFile> files = pdfFileDAO.getAllFiles(user.getId()); // Memuat hanya file PDF milik pengguna yang login
+        tableModel.setRowCount(0); // Menghapus data tabel sebelumnya
         for (PdfFile file : files) {
-            tableModel.addRow(new Object[]{file.getId(), file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getFilePath(), file.getUploadedAt()});
+            tableModel.addRow(new Object[]{file.getId(), file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
         }
     }
 }

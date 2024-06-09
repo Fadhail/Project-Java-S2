@@ -9,6 +9,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 public class UserDAO {
+    private Connection connection;
+
+    public UserDAO() {
+        this.connection = DatabaseConnection.getConnection();
+    }
 
     public static boolean registerUser(String name, String email, String password) {
         String sql = "INSERT INTO users(name, email, password) VALUES(?, ?, ?)";
@@ -42,5 +47,25 @@ public class UserDAO {
             System.out.println(e.getMessage());
         }
         return null;
+    }
+
+    public User getUserById(int id) throws SQLException {
+        User user = null;
+        String query = "SELECT * FROM users WHERE id = ?";
+        PreparedStatement preparedStatement = connection.prepareStatement(query);
+        preparedStatement.setInt(1, id);
+        ResultSet resultSet = preparedStatement.executeQuery();
+
+        if (resultSet.next()) {
+            String name = resultSet.getString("name");
+            String email = resultSet.getString("email");
+            String password = resultSet.getString("password");
+            user = new User(id, name, email, password);
+        }
+
+        resultSet.close();
+        preparedStatement.close();
+
+        return user;
     }
 }
