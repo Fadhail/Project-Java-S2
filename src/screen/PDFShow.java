@@ -17,7 +17,7 @@ public class PDFShow extends JFrame {
 
     public PDFShow(File file) {
         setTitle("PDF Show");
-        setSize(720, 1080);
+        setSize(450, 750);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 

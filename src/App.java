@@ -1,7 +1,7 @@
 import screen.TitleScreenGui;
 import javax.swing.*;
 
-public class App {
+public class it App {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(new Runnable() {
             @Override

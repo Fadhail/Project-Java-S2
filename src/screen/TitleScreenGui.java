@@ -56,7 +56,6 @@ public class TitleScreenGui extends JFrame {
         JButton loginButton = new JButton("Login");
         loginButton.setBounds(300, 200, 200, 50);
         loginButton.setBackground(constants.Colors.DARK_BLUE);
-        loginButton.setForeground(Color.WHITE);
         loginButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -72,7 +71,6 @@ public class TitleScreenGui extends JFrame {
         JButton registerButton = new JButton("Register");
         registerButton.setBounds(300, 300, 200, 50);
         registerButton.setBackground(constants.Colors.DARK_BLUE);
-        registerButton.setForeground(Color.WHITE);
         registerButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {

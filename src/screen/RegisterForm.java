@@ -3,7 +3,6 @@ package screen;
 import dao.UserDAO;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 

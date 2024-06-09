@@ -4,7 +4,6 @@ import dao.UserDAO;
 import model.User;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -16,11 +15,11 @@ public class LoginForm extends JFrame {
         // Set the size of the JFrame
         setSize(800, 600);
 
-        // Set layout to null
-        setLayout(null);
-
         // Center the JFrame
         setLocationRelativeTo(null);
+
+        // Set layout to null
+        setLayout(null);
 
         // Disable the resize button
         setResizable(false);

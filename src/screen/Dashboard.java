@@ -4,32 +4,26 @@ import model.User;
 import model.PdfFile;
 import dao.PdfFileDAO;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.rendering.PDFRenderer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.io.FileInputStream; // Tambahkan impor ini
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
 import java.util.List;
 
 public class Dashboard extends JFrame {
-    private User user;
     private JLabel pdfLabel;
     private JTable table;
     private DefaultTableModel tableModel;
     private static final String UPLOAD_DIR = "public/pdf/";
 
     public Dashboard(User user) {
-        //this.user = user;
-
         // Call the JFrame constructor
         super("Dashboard");
 
@@ -80,7 +74,6 @@ public class Dashboard extends JFrame {
         JButton button = new JButton(text);
         button.setBounds(300, 500, 200, 50);
         button.setBackground(constants.Colors.DARK_BLUE);
-        button.setForeground(Color.WHITE);
         return button;
     }
 
@@ -89,7 +82,7 @@ public class Dashboard extends JFrame {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
 
         // Table to display file information
-        tableModel = new DefaultTableModel(new Object[]{"ID", "File Name", "File Path", "Uploaded At"}, 0);
+        tableModel = new DefaultTableModel(new Object[]{"ID", "File Name", "File Description", "File Category", "File Path", "Uploaded At"}, 0);
         table = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.setBounds(50, 50, 700, 300);
@@ -98,19 +91,7 @@ public class Dashboard extends JFrame {
         // Button to upload PDF
         JButton uploadButton = createIconButton("Upload PDF", "upload_icon.png");
         uploadButton.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
-            int returnValue = fileChooser.showOpenDialog(null);
-            if (returnValue == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
-                File destinationFile = new File(UPLOAD_DIR + selectedFile.getName());
-                try {
-                    Files.copy(selectedFile.toPath(), destinationFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                    saveFileInfoToDatabase(selectedFile.getName(), destinationFile.getPath());
-                    loadTableData();
-                } catch (IOException | SQLException ex) {
-                    ex.printStackTrace();
-                }
-            }
+            new UploadFile().setVisible(true);
         });
         buttonPanel.add(uploadButton);
 
@@ -124,24 +105,27 @@ public class Dashboard extends JFrame {
                     String filePath = (String) tableModel.getValueAt(selectedRow, 2);
                     File selectedPdfFile = new File(filePath);
                     try {
-                        if (selectedPdfFile.delete()) {
+                        if (selectedPdfFile.exists() && selectedPdfFile.delete()) {
                             PdfFileDAO pdfFileDAO = new PdfFileDAO();
                             int fileId = (int) tableModel.getValueAt(selectedRow, 0);
                             pdfFileDAO.deleteFile(fileId);
                             loadTableData();
                             pdfLabel.setIcon(null);
                         } else {
-                            JOptionPane.showMessageDialog(Dashboard.this, "Gagal menghapus file");
+                            JOptionPane.showMessageDialog(Dashboard.this, "Gagal menghapus file atau file tidak ditemukan");
                         }
                     } catch (SQLException ex) {
                         ex.printStackTrace();
+                        JOptionPane.showMessageDialog(Dashboard.this, "Gagal menghapus file: " + ex.getMessage());
+                    } catch (SecurityException ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(Dashboard.this, "Tidak diizinkan menghapus file: " + ex.getMessage());
                     }
                 }
             } else {
                 JOptionPane.showMessageDialog(Dashboard.this, "Pilih file PDF terlebih dahulu");
             }
         });
-        buttonPanel.add(deleteButton);
 
         // Button to show PDF
         JButton showButton = createIconButton("Tampilkan", "show_icon.png");
@@ -158,9 +142,7 @@ public class Dashboard extends JFrame {
         buttonPanel.add(showButton);
 
         // Logout Button
-        JButton logoutButton = new JButton("Logout");
-        logoutButton.setBackground(constants.Colors.DARK_BLUE);
-        logoutButton.setForeground(Color.WHITE);
+        JButton logoutButton = createIconButton("Logout", "logout_icon.png");
         logoutButton.addActionListener(e -> {
             // Open the title screen
             new TitleScreenGui().setVisible(true);
@@ -211,10 +193,9 @@ public class Dashboard extends JFrame {
         }
     }
 
-
-    private void saveFileInfoToDatabase(String fileName, String filePath) throws SQLException {
+    private void saveFileInfoToDatabase(String fileName, String fileDescription, String fileCategory, String filePath) throws SQLException {
         PdfFileDAO pdfFileDAO = new PdfFileDAO();
-        PdfFile pdfFile = new PdfFile(0, fileName, filePath, null); // ID and uploadedAt will be set by DB
+        PdfFile pdfFile = new PdfFile(0, fileName, fileDescription, fileCategory, filePath, null); // ID and uploadedAt will be set by DB
         pdfFileDAO.saveFileInfo(pdfFile);
     }
 
@@ -223,7 +204,7 @@ public class Dashboard extends JFrame {
         List<PdfFile> files = pdfFileDAO.getAllFiles();
         tableModel.setRowCount(0); // Clear existing data
         for (PdfFile file : files) {
-            tableModel.addRow(new Object[]{file.getId(), file.getFileName(), file.getFilePath(), file.getUploadedAt()});
+            tableModel.addRow(new Object[]{file.getId(), file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getFilePath(), file.getUploadedAt()});
         }
     }
 }
