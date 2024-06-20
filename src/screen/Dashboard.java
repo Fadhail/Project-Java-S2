@@ -4,13 +4,11 @@ import constants.Colors;
 import model.User;
 import model.PdfFile;
 import dao.PdfFileDAO;
-import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.rendering.PDFRenderer;
-
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.image.BufferedImage;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
 import java.sql.SQLException;
@@ -33,12 +31,10 @@ public class Dashboard extends JFrame {
         this.userId = user.getId();
         this.pdfFileDAO = new PdfFileDAO();
 
-        setSize(1920, 1080);
-        setLayout(null);
+        setSize(1000, 800);
         setLocationRelativeTo(null);
-        setResizable(false);
+        setResizable(true); // Allow resizing
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        getContentPane().setBackground(Colors.LIGHT_BLUE);
 
         addGuiComponents();
         setVisible(true);
@@ -53,6 +49,13 @@ public class Dashboard extends JFrame {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+
+        addWindowFocusListener(new WindowAdapter() {
+            @Override
+            public void windowGainedFocus(WindowEvent e) {
+                refreshDashboard();
+            }
+        });
     }
 
     private void showPDF(File file) {
@@ -67,7 +70,11 @@ public class Dashboard extends JFrame {
     }
 
     private void addGuiComponents() {
-        // Search Button
+        // Initialize pdfLabel
+        pdfLabel = new JLabel();
+        pdfLabel.setHorizontalAlignment(JLabel.CENTER);
+
+        // Search Panel
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JTextField searchField = new JTextField(20);
         JButton searchButton = new JButton("Search");
@@ -90,8 +97,9 @@ public class Dashboard extends JFrame {
                     .collect(Collectors.toList());
 
             tableModel.setRowCount(0);
+            int rowIndex = 1; // Start index from 1
             for (PdfFile file : filteredFiles) {
-                tableModel.addRow(new Object[]{file.getId(), file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
+                tableModel.addRow(new Object[]{rowIndex++, file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
             }
         });
 
@@ -100,7 +108,7 @@ public class Dashboard extends JFrame {
         table = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(table);
 
-        // Uplaod Button
+        // Upload Button
         JButton uploadButton = createIconButton("Upload PDF", "upload_icon.png");
         uploadButton.addActionListener(e -> {
             new UploadFile(userId).setVisible(true);
@@ -114,8 +122,21 @@ public class Dashboard extends JFrame {
                 int confirm = JOptionPane.showConfirmDialog(Dashboard.this, "Anda yakin ingin menghapus file ini?", "Konfirmasi Hapus", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     try {
-                        int fileId = (int) tableModel.getValueAt(selectedRow, 0);
+                        // Fetch the actual file ID using the row index
+                        PdfFile file = pdfFileDAO.getAllFiles(user.getId()).get(selectedRow);
+                        int fileId = file.getId();
+                        String fileName = file.getFileName();
+                        File fileToDelete = new File(UPLOAD_DIR + fileName);
+
+                        // Delete from database
                         pdfFileDAO.deleteFile(fileId);
+
+                        // Delete the file from the file system
+                        if (fileToDelete.exists() && !fileToDelete.delete()) {
+                            JOptionPane.showMessageDialog(Dashboard.this, "Failed to delete the file from the filesystem.");
+                        }
+
+                        // Refresh the table data
                         loadTableData();
                         pdfLabel.setIcon(null);
                     } catch (SQLException | IOException ex) {
@@ -152,52 +173,30 @@ public class Dashboard extends JFrame {
             setVisible(false);
         });
 
-        // Mengatur posisi dan ukuran komponen
+        // Button Panel
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.add(uploadButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(showButton);
         buttonPanel.add(logoutButton);
 
-        GroupLayout layout = new GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setAutoCreateGaps(true);
-        layout.setAutoCreateContainerGaps(true);
+        // Set Layout
+        setLayout(new BorderLayout());
 
-        layout.setHorizontalGroup(
-                layout.createParallelGroup(GroupLayout.Alignment.LEADING)
-                        .addComponent(searchPanel)
-                        .addComponent(scrollPane)
-                        .addComponent(buttonPanel)
-        );
-
-        layout.setVerticalGroup(
-                layout.createSequentialGroup()
-                        .addComponent(searchPanel, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addComponent(scrollPane, GroupLayout.PREFERRED_SIZE, 300, GroupLayout.PREFERRED_SIZE)
-                        .addComponent(buttonPanel)
-        );
-
-        pack();
-    }
-
-    private void displayPDF(File file) {
-        try (PDDocument document = PDDocument.load(file)) {
-            PDFRenderer pdfRenderer = new PDFRenderer(document);
-            BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(0, 300);
-            ImageIcon icon = new ImageIcon(bufferedImage);
-            pdfLabel.setIcon(icon);
-        } catch (IOException ex) {
-            ex.printStackTrace();
-        }
+        // Add Components to Layout
+        add(searchPanel, BorderLayout.NORTH);
+        add(scrollPane, BorderLayout.CENTER);
+        add(buttonPanel, BorderLayout.SOUTH);
+        add(pdfLabel, BorderLayout.EAST); // Add pdfLabel to layout
     }
 
     private void loadTableData() throws SQLException {
         PdfFileDAO pdfFileDAO = new PdfFileDAO();
         List<PdfFile> files = pdfFileDAO.getAllFiles(user.getId());
         tableModel.setRowCount(0);
+        int rowIndex = 1; // Start index from 1
         for (PdfFile file : files) {
-            tableModel.addRow(new Object[]{file.getId(), file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
+            tableModel.addRow(new Object[]{rowIndex++, file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
         }
     }
 
