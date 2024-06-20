@@ -88,9 +88,12 @@
                         saveFileInfoToDatabase(selectedFile.getName(), destinationFile.getPath(), fileDescriptionField.getText(), fileCategoryField.getText(), userId);
                         JOptionPane.showMessageDialog(this, "File uploaded successfully!");
                         dispose();
-                    } catch (IOException | SQLException ex) {
+                    } catch (IOException ex) {
                         ex.printStackTrace();
-                        JOptionPane.showMessageDialog(this, "Failed to upload file.");
+                        JOptionPane.showMessageDialog(this, "Failed to copy file: " + ex.getMessage());
+                    } catch (SQLException ex) {
+                        ex.printStackTrace();
+                        JOptionPane.showMessageDialog(this, "Failed to save file info to database: " + ex.getMessage());
                     }
                 } else {
                     JOptionPane.showMessageDialog(this, "Please choose a file and fill all fields first.");
@@ -103,7 +106,7 @@
             UserDAO userDAO = new UserDAO();
             if (userDAO.getUserById(userId) != null) {
                 PdfFileDAO pdfFileDAO = new PdfFileDAO();
-                PdfFile pdfFile = new PdfFile(0, fileName, fileDescription, fileCategory, null, userId); // ID and uploadedAt will be set by DB
+                PdfFile pdfFile = new PdfFile(0, fileName, fileDescription, fileCategory, filePath, null, userId); // ID and uploadedAt will be set by DB
                 pdfFileDAO.saveFileInfo(pdfFile);
             } else {
                 throw new SQLException("User ID does not exist in the users table.");

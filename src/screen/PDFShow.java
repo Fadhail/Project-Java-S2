@@ -2,8 +2,6 @@ package screen;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -14,6 +12,8 @@ public class PDFShow extends JFrame {
     private JLabel pdfLabel;
     private int currentPageIndex = 0;
     private int pageCount = 0;
+    private PDDocument document;
+    private PDFRenderer pdfRenderer;
 
     public PDFShow(File file) {
         setTitle("PDF Show");
@@ -35,24 +35,18 @@ public class PDFShow extends JFrame {
         });
 
         JButton previousButton = new JButton("Previous");
-        previousButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (currentPageIndex > 0) {
-                    currentPageIndex--;
-                    displayPDF(file, currentPageIndex);
-                }
+        previousButton.addActionListener(e -> {
+            if (currentPageIndex > 0) {
+                currentPageIndex--;
+                displayPDF(currentPageIndex);
             }
         });
 
         JButton nextButton = new JButton("Next");
-        nextButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (currentPageIndex < pageCount - 1) {
-                    currentPageIndex++;
-                    displayPDF(file, currentPageIndex);
-                }
+        nextButton.addActionListener(e -> {
+            if (currentPageIndex < pageCount - 1) {
+                currentPageIndex++;
+                displayPDF(currentPageIndex);
             }
         });
 
@@ -62,16 +56,35 @@ public class PDFShow extends JFrame {
         buttonPanel.add(nextButton);
         add(buttonPanel, BorderLayout.SOUTH);
 
-        displayPDF(file, currentPageIndex);
+        try {
+            document = PDDocument.load(file);
+            pdfRenderer = new PDFRenderer(document);
+            pageCount = document.getNumberOfPages();
+            displayPDF(currentPageIndex);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
     }
 
-    private void displayPDF(File file, int pageIndex) {
-        try (PDDocument document = PDDocument.load(file)) {
-            PDFRenderer pdfRenderer = new PDFRenderer(document);
-            pageCount = document.getNumberOfPages();
-            BufferedImage bufferedImage = pdfRenderer.renderImage(pageIndex);
+    private void displayPDF(int pageIndex) {
+        try {
+            BufferedImage bufferedImage = pdfRenderer.renderImageWithDPI(pageIndex, 300);
             ImageIcon icon = new ImageIcon(bufferedImage);
             pdfLabel.setIcon(icon);
+            pdfLabel.revalidate();
+            pdfLabel.repaint();
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    @Override
+    public void dispose() {
+        super.dispose();
+        try {
+            if (document != null) {
+                document.close();
+            }
         } catch (IOException ex) {
             ex.printStackTrace();
         }

@@ -67,12 +67,12 @@ public class Dashboard extends JFrame {
     }
 
     private void addGuiComponents() {
+        // Search Button
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         JTextField searchField = new JTextField(20);
         JButton searchButton = new JButton("Search");
         searchPanel.add(searchField);
         searchPanel.add(searchButton);
-
         searchButton.addActionListener(e -> {
             String searchText = searchField.getText().toLowerCase();
             List<PdfFile> files;
@@ -95,39 +95,32 @@ public class Dashboard extends JFrame {
             }
         });
 
+        // Show Table
         tableModel = new DefaultTableModel(new Object[]{"ID", "File Name", "File Description", "File Category", "Uploaded At"}, 0);
         table = new JTable(tableModel);
         JScrollPane scrollPane = new JScrollPane(table);
 
+        // Uplaod Button
         JButton uploadButton = createIconButton("Upload PDF", "upload_icon.png");
         uploadButton.addActionListener(e -> {
             new UploadFile(userId).setVisible(true);
         });
 
+        // Delete Button
         JButton deleteButton = createIconButton("Hapus", "delete_icon.png");
         deleteButton.addActionListener(e -> {
             int selectedRow = table.getSelectedRow();
             if (selectedRow != -1) {
                 int confirm = JOptionPane.showConfirmDialog(Dashboard.this, "Anda yakin ingin menghapus file ini?", "Konfirmasi Hapus", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
-                    String filePath = (String) tableModel.getValueAt(selectedRow, 2);
-                    File selectedPdfFile = new File(filePath);
                     try {
-                        if (selectedPdfFile.exists() && selectedPdfFile.delete()) {
-                            PdfFileDAO pdfFileDAO = new PdfFileDAO();
-                            int fileId = (int) tableModel.getValueAt(selectedRow, 0);
-                            pdfFileDAO.deleteFile(fileId);
-                            loadTableData();
-                            pdfLabel.setIcon(null);
-                        } else {
-                            JOptionPane.showMessageDialog(Dashboard.this, "Gagal menghapus file atau file tidak ditemukan");
-                        }
-                    } catch (SQLException ex) {
+                        int fileId = (int) tableModel.getValueAt(selectedRow, 0);
+                        pdfFileDAO.deleteFile(fileId);
+                        loadTableData();
+                        pdfLabel.setIcon(null);
+                    } catch (SQLException | IOException ex) {
                         ex.printStackTrace();
-                        JOptionPane.showMessageDialog(Dashboard.this, "Gagal menghapus file: " + ex.getMessage());
-                    } catch (SecurityException ex) {
-                        ex.printStackTrace();
-                        JOptionPane.showMessageDialog(Dashboard.this, "Tidak diizinkan menghapus file: " + ex.getMessage());
+                        JOptionPane.showMessageDialog(Dashboard.this, "Error while deleting file: " + ex.getMessage());
                     }
                 }
             } else {
@@ -135,24 +128,31 @@ public class Dashboard extends JFrame {
             }
         });
 
+        // Show Button
         JButton showButton = createIconButton("Tampilkan", "show_icon.png");
         showButton.addActionListener(e -> {
             int selectedRow = table.getSelectedRow();
             if (selectedRow != -1) {
-                String filePath = (String) tableModel.getValueAt(selectedRow, 2);
-                File selectedPdfFile = new File(filePath);
-                showPDF(selectedPdfFile);
+                String fileName = (String) tableModel.getValueAt(selectedRow, 1); // Ensure this column is the file name or adjust accordingly
+                File selectedPdfFile = new File(UPLOAD_DIR + fileName); // Ensure the file path is correctly constructed
+                if (selectedPdfFile.exists()) {
+                    showPDF(selectedPdfFile);
+                } else {
+                    JOptionPane.showMessageDialog(Dashboard.this, "File not found: " + selectedPdfFile.getAbsolutePath());
+                }
             } else {
-                JOptionPane.showMessageDialog(Dashboard.this, "Pilih file PDF terlebih dahulu");
+                JOptionPane.showMessageDialog(Dashboard.this, "Please select a PDF file first");
             }
         });
 
+        // Logout Button
         JButton logoutButton = createIconButton("Logout", "logout_icon.png");
         logoutButton.addActionListener(e -> {
             new TitleScreenGui().setVisible(true);
             setVisible(false);
         });
 
+        // Mengatur posisi dan ukuran komponen
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.add(uploadButton);
         buttonPanel.add(deleteButton);
