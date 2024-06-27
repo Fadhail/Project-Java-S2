@@ -1,12 +1,16 @@
 package screen;
 
 import constants.Colors;
-import model.User;
-import model.PdfFile;
 import dao.PdfFileDAO;
+import dao.UserDAO;
+import model.PdfFile;
+import model.User;
+
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -28,15 +32,14 @@ public class Dashboard extends JFrame {
         super("Dashboard");
 
         this.user = user;
-        this.userId = user.getId();
         this.pdfFileDAO = new PdfFileDAO();
 
         setSize(1000, 800);
-        setLocationRelativeTo(null);
         setResizable(true); // Allow resizing
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         addGuiComponents();
+        setLocationRelativeTo(null);
         setVisible(true);
 
         File uploadDir = new File(UPLOAD_DIR);
@@ -47,6 +50,7 @@ public class Dashboard extends JFrame {
         try {
             loadTableData();
         } catch (SQLException e) {
+            JOptionPane.showMessageDialog(this, "Error while loading table data: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -70,133 +74,208 @@ public class Dashboard extends JFrame {
     }
 
     private void addGuiComponents() {
-        // Initialize pdfLabel
-        pdfLabel = new JLabel();
-        pdfLabel.setHorizontalAlignment(JLabel.CENTER);
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BorderLayout());
+        mainPanel.setBackground(Colors.LIGHT_GRAY); // Example color from your constants
+
+        // Title Panel
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setBackground(new Color(52, 58, 64));
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel titleLabel = new JLabel("Bookshelf Buddy");
+        titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
+        titleLabel.setForeground(Color.WHITE);
+        titlePanel.add(titleLabel, BorderLayout.WEST);
 
         // Search Panel
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel searchPanel = new JPanel();
+        searchPanel.setBackground(new Color(52, 58, 64));
+
         JTextField searchField = new JTextField(20);
+        searchField.setPreferredSize(new Dimension(200, 30));
+        searchField.setBorder(BorderFactory.createLineBorder(Color.WHITE, 1));
+
         JButton searchButton = new JButton("Search");
-        searchPanel.add(searchField);
-        searchPanel.add(searchButton);
+        searchButton.setBackground(new Color(76, 175, 80));
+        searchButton.setForeground(Color.BLACK);
+        searchButton.setPreferredSize(new Dimension(80, 30));
+        searchButton.setFont(new Font("SansSerif", Font.BOLD, 12));
         searchButton.addActionListener(e -> {
             String searchText = searchField.getText().toLowerCase();
-            List<PdfFile> files;
             try {
-                files = pdfFileDAO.getAllFiles(user.getId());
-            } catch (SQLException sqlException) {
-                sqlException.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error while fetching files: " + sqlException.getMessage());
-                return;
-            }
-            List<PdfFile> filteredFiles = files.stream()
-                    .filter(file -> file.getFileName().toLowerCase().contains(searchText)
-                            || file.getFileDescription().toLowerCase().contains(searchText)
-                            || file.getFileCategory().toLowerCase().contains(searchText))
-                    .collect(Collectors.toList());
-
-            tableModel.setRowCount(0);
-            int rowIndex = 1; // Start index from 1
-            for (PdfFile file : filteredFiles) {
-                tableModel.addRow(new Object[]{rowIndex++, file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
+                loadFilteredFiles(searchText);
+            } catch (SQLException ex) {
+                JOptionPane.showMessageDialog(this, "Error while fetching files: " + ex.getMessage());
+                ex.printStackTrace();
             }
         });
 
-        // Show Table
-        tableModel = new DefaultTableModel(new Object[]{"ID", "File Name", "File Description", "File Category", "Uploaded At"}, 0);
+        searchPanel.add(searchField);
+        searchPanel.add(searchButton);
+        titlePanel.add(searchPanel, BorderLayout.CENTER);
+
+        // Logout Button with Dropdown
+        JButton logoutButton = new JButton(user.getName() + " \u25BE");
+        logoutButton.setPreferredSize(new Dimension(100, 30));
+        logoutButton.setForeground(Color.WHITE);
+        logoutButton.setOpaque(false);
+        logoutButton.setContentAreaFilled(false);
+        logoutButton.setBorderPainted(false);
+
+        JPopupMenu logoutMenu = new JPopupMenu();
+        JMenuItem editProfileItem = new JMenuItem("Edit Profile");
+        JMenuItem logoutMenuItem = new JMenuItem("Logout");
+
+        editProfileItem.addActionListener(e -> {
+            new EditProfile(user, new UserDAO(), this);
+            setVisible(false);
+        });
+
+        logoutMenuItem.addActionListener(e -> {
+            int option = JOptionPane.showConfirmDialog(this, "Are you sure you want to logout?", "Logout", JOptionPane.YES_NO_OPTION);
+            if (option == JOptionPane.YES_OPTION) {
+                new TitleScreenGui().setVisible(true);
+                setVisible(false);
+            }
+        });
+
+        logoutMenu.add(editProfileItem);
+        logoutMenu.add(logoutMenuItem);
+
+        logoutButton.addActionListener(e -> {
+            logoutMenu.show(logoutButton, 0, logoutButton.getHeight());
+        });
+
+        titlePanel.add(logoutButton, BorderLayout.EAST);
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+
+        // Table Panel
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBackground(Colors.LIGHT_GRAY); // Adjust color
+        tableModel = new DefaultTableModel(new Object[]{"ID", "File Name", "Description", "Category", "Uploaded At"}, 0);
         table = new JTable(tableModel);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION); // Allow single row selection
+        table.setRowHeight(30); // Adjust row height as needed
         JScrollPane scrollPane = new JScrollPane(table);
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(tablePanel);
+
+        // Button Panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        buttonPanel.setBackground(Colors.LIGHT_GRAY);
 
         // Upload Button
         JButton uploadButton = createIconButton("Upload PDF", "upload_icon.png");
         uploadButton.addActionListener(e -> {
-            new UploadFile(userId).setVisible(true);
+            new UploadFile(user.getId()).setVisible(true);
+        });
+
+        // Update Button
+        JButton updateButton = createIconButton("Update", "update_icon.png");
+        updateButton.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow != -1) {
+                try {
+                    PdfFile selectedFile = pdfFileDAO.getAllFiles(user.getId()).get(selectedRow);
+                    new UpdateFile(selectedFile).setVisible(true);
+                } catch (SQLException ex) {
+                    JOptionPane.showMessageDialog(this, "Error while fetching files: " + ex.getMessage());
+                    ex.printStackTrace();
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, "Please select a file to update.");
+            }
         });
 
         // Delete Button
-        JButton deleteButton = createIconButton("Hapus", "delete_icon.png");
+        JButton deleteButton = createIconButton("Delete", "delete_icon.png");
         deleteButton.addActionListener(e -> {
             int selectedRow = table.getSelectedRow();
             if (selectedRow != -1) {
-                int confirm = JOptionPane.showConfirmDialog(Dashboard.this, "Anda yakin ingin menghapus file ini?", "Konfirmasi Hapus", JOptionPane.YES_NO_OPTION);
+                int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this file?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
                 if (confirm == JOptionPane.YES_OPTION) {
                     try {
-                        // Fetch the actual file ID using the row index
-                        PdfFile file = pdfFileDAO.getAllFiles(user.getId()).get(selectedRow);
-                        int fileId = file.getId();
-                        String fileName = file.getFileName();
-                        File fileToDelete = new File(UPLOAD_DIR + fileName);
-
-                        // Delete from database
-                        pdfFileDAO.deleteFile(fileId);
-
-                        // Delete the file from the file system
-                        if (fileToDelete.exists() && !fileToDelete.delete()) {
-                            JOptionPane.showMessageDialog(Dashboard.this, "Failed to delete the file from the filesystem.");
-                        }
-
-                        // Refresh the table data
-                        loadTableData();
-                        pdfLabel.setIcon(null);
-                    } catch (SQLException | IOException ex) {
+                        PdfFile fileToDelete = pdfFileDAO.getAllFiles(user.getId()).get(selectedRow);
+                        deletePdfFile(fileToDelete);
+                    } catch (SQLException ex) {
+                        JOptionPane.showMessageDialog(this, "Error while deleting file: " + ex.getMessage());
                         ex.printStackTrace();
-                        JOptionPane.showMessageDialog(Dashboard.this, "Error while deleting file: " + ex.getMessage());
                     }
                 }
             } else {
-                JOptionPane.showMessageDialog(Dashboard.this, "Pilih file PDF terlebih dahulu");
+                JOptionPane.showMessageDialog(this, "Please select a file to delete.");
             }
         });
 
         // Show Button
-        JButton showButton = createIconButton("Tampilkan", "show_icon.png");
+        JButton showButton = createIconButton("Show", "show_icon.png");
         showButton.addActionListener(e -> {
             int selectedRow = table.getSelectedRow();
             if (selectedRow != -1) {
-                String fileName = (String) tableModel.getValueAt(selectedRow, 1); // Ensure this column is the file name or adjust accordingly
-                File selectedPdfFile = new File(UPLOAD_DIR + fileName); // Ensure the file path is correctly constructed
-                if (selectedPdfFile.exists()) {
-                    showPDF(selectedPdfFile);
+                String fileName = (String) tableModel.getValueAt(selectedRow, 1); // Assuming file name is in the second column
+                File selectedFile = new File(UPLOAD_DIR + fileName);
+                if (selectedFile.exists()) {
+                    showPDF(selectedFile);
                 } else {
-                    JOptionPane.showMessageDialog(Dashboard.this, "File not found: " + selectedPdfFile.getAbsolutePath());
+                    JOptionPane.showMessageDialog(this, "File not found: " + selectedFile.getAbsolutePath());
                 }
             } else {
-                JOptionPane.showMessageDialog(Dashboard.this, "Please select a PDF file first");
+                JOptionPane.showMessageDialog(this, "Please select a file to show.");
             }
         });
 
-        // Logout Button
-        JButton logoutButton = createIconButton("Logout", "logout_icon.png");
-        logoutButton.addActionListener(e -> {
-            new TitleScreenGui().setVisible(true);
-            setVisible(false);
-        });
-
-        // Button Panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.add(uploadButton);
+        buttonPanel.add(updateButton);
         buttonPanel.add(deleteButton);
         buttonPanel.add(showButton);
-        buttonPanel.add(logoutButton);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
 
-        // Set Layout
-        setLayout(new BorderLayout());
+        add(mainPanel);
+        pack();
+    }
 
-        // Add Components to Layout
-        add(searchPanel, BorderLayout.NORTH);
-        add(scrollPane, BorderLayout.CENTER);
-        add(buttonPanel, BorderLayout.SOUTH);
-        add(pdfLabel, BorderLayout.EAST); // Add pdfLabel to layout
+    private void loadFilteredFiles(String searchText) throws SQLException {
+        List<PdfFile> files = pdfFileDAO.getAllFiles(user.getId());
+        List<PdfFile> filteredFiles = files.stream()
+                .filter(file -> file.getFileName().toLowerCase().contains(searchText.toLowerCase())
+                        || file.getFileDescription().toLowerCase().contains(searchText.toLowerCase())
+                        || file.getFileCategory().toLowerCase().contains(searchText.toLowerCase()))
+                .collect(Collectors.toList());
+
+        displayFilteredFiles(filteredFiles);
+    }
+
+    private void displayFilteredFiles(List<PdfFile> filteredFiles) {
+        tableModel.setRowCount(0);
+        int rowIndex = 1;
+        for (PdfFile file : filteredFiles) {
+            tableModel.addRow(new Object[]{rowIndex++, file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
+        }
     }
 
     private void loadTableData() throws SQLException {
-        PdfFileDAO pdfFileDAO = new PdfFileDAO();
         List<PdfFile> files = pdfFileDAO.getAllFiles(user.getId());
-        tableModel.setRowCount(0);
-        int rowIndex = 1; // Start index from 1
-        for (PdfFile file : files) {
-            tableModel.addRow(new Object[]{rowIndex++, file.getFileName(), file.getFileDescription(), file.getFileCategory(), file.getUploadedAt()});
+        displayFilteredFiles(files);
+    }
+
+    private void deletePdfFile(PdfFile fileToDelete) {
+        try {
+            int fileId = fileToDelete.getId();
+            String fileName = fileToDelete.getFileName();
+            File file = new File(UPLOAD_DIR + fileName);
+
+            pdfFileDAO.deleteFile(fileId);
+
+            if (file.exists() && !file.delete()) {
+                JOptionPane.showMessageDialog(this, "Failed to delete the file from the filesystem.");
+            } else {
+                loadTableData();
+                JOptionPane.showMessageDialog(this, "File deleted successfully.");
+            }
+        } catch (SQLException | IOException ex) {
+            JOptionPane.showMessageDialog(this, "Error while deleting file: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 
@@ -204,8 +283,8 @@ public class Dashboard extends JFrame {
         try {
             loadTableData();
         } catch (SQLException ex) {
-            ex.printStackTrace();
             JOptionPane.showMessageDialog(this, "Error while refreshing dashboard: " + ex.getMessage());
+            ex.printStackTrace();
         }
     }
 }

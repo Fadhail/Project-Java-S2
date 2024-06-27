@@ -29,7 +29,6 @@ public class PdfFileDAO {
     }
 
     public PdfFile getFileById(int fileId) throws SQLException {
-        PdfFile pdfFile = null;
         String sql = "SELECT * FROM pdf_files WHERE id = ?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
@@ -42,11 +41,11 @@ public class PdfFileDAO {
                     String filePath = resultSet.getString("filePath");
                     String uploadedAt = resultSet.getString("uploadedAt");
                     int userId = resultSet.getInt("user_id");
-                    pdfFile = new PdfFile(fileId, fileName, fileDescription, fileCategory, filePath, uploadedAt, userId);
+                    return new PdfFile(fileId, fileName, fileDescription, fileCategory, filePath, uploadedAt, userId);
                 }
             }
         }
-        return pdfFile;
+        return null;
     }
 
     public List<PdfFile> getAllFiles(int userId) throws SQLException {
@@ -71,6 +70,17 @@ public class PdfFileDAO {
         return files;
     }
 
+    public void updateFile(PdfFile pdfFile) throws SQLException {
+        String sql = "UPDATE pdf_files SET fileName = ?, fileDescription = ?, fileCategory = ? WHERE id = ?";
+        try (Connection connection = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, pdfFile.getFileName());
+            pstmt.setString(2, pdfFile.getFileDescription());
+            pstmt.setString(3, pdfFile.getFileCategory());
+            pstmt.setInt(4, pdfFile.getId());
+            pstmt.executeUpdate();
+        }
+    }
 
     public void deleteFile(int fileId) throws SQLException, IOException {
         PdfFile pdfFile = getFileById(fileId);

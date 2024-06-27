@@ -23,24 +23,17 @@
 
         public UploadFile(int userId) {
             super("UploadFile");
-
             this.userId = userId;
-
             // Set the size of the JFrame
             setSize(400, 300);
-
             // Set layout to null
             setLayout(null);
-
             // Center the JFrame
             setLocationRelativeTo(null);
-
             // Disable the resize button
             setResizable(false);
-
             // Set the default close operation
             setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-
             // Initialize components
             JLabel fileNameLabel = new JLabel("File Name:");
             fileNameLabel.setBounds(20, 20, 100, 25);
@@ -111,10 +104,5 @@
             } else {
                 throw new SQLException("User ID does not exist in the users table.");
             }
-        } // This closing brace was missing
-
-        public static void main(String[] args) {
-            int userId = 123;
-            SwingUtilities.invokeLater(() -> new UploadFile(userId).setVisible(true));
         }
     }

@@ -7,4 +7,6 @@ public class Colors {
     public static final java.awt.Color DARK_BLUE = java.awt.Color.decode("#00008B");
     public static final java.awt.Color WHITE = java.awt.Color.decode("#FFFFFF");
     public static final java.awt.Color BLACK = java.awt.Color.decode("#000000");
+    public static final java.awt.Color LIGHT_GRAY = java.awt.Color.decode("#D3D3D3");
+    public static final java.awt.Color TRANSPARENT = new java.awt.Color(0, 0, 0, 0);
 }

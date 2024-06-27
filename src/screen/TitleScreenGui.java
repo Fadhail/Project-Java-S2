@@ -37,13 +37,13 @@ public class TitleScreenGui extends JFrame {
         mainPanel.setAlignmentY(Component.CENTER_ALIGNMENT);
 
         // Title label
-        JLabel titleLabel = new JLabel("My Library");
+        JLabel titleLabel = new JLabel("Bookshelf Buddy");
         titleLabel.setFont(new Font("Serif", Font.BOLD, 64));
         titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         titleLabel.setForeground(Colors.WHITE);
 
         // Description label
-        JLabel descriptionLabel = new JLabel("Welcome to My Library");
+        JLabel descriptionLabel = new JLabel("Welcome to Bookshelf Buddy");
         descriptionLabel.setFont(new Font("Serif", Font.PLAIN, 24));
         descriptionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         descriptionLabel.setForeground(Colors.WHITE);
@@ -140,7 +140,7 @@ public class TitleScreenGui extends JFrame {
         JButton button = new JButton(text);
         button.setPreferredSize(new Dimension(150, 50));
         button.setFont(new Font("Serif", Font.PLAIN, 18));
-        button.setBackground(constants.Colors.DARK_BLUE);
+        button.setBackground(Colors.DARK_BLUE);
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
@@ -166,13 +166,5 @@ public class TitleScreenGui extends JFrame {
                 g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
             }
         }
-    }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            public void run() {
-                new TitleScreenGui();
-            }
-        });
     }
 }
